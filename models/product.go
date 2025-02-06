@@ -8,4 +8,5 @@ type Product struct {
 	Description string  `json:"description"`
 	Price       float64 `json:"price"`
 	Category    string  `json:"category"`
+	// Inventory   Inventory `gorm:"foreignKey:ProductID"`
 }

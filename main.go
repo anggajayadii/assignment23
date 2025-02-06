@@ -2,6 +2,7 @@ package main
 
 import (
 	"assignment23/config"
+	"assignment23/models"
 	"assignment23/routes"
 	"log"
 
@@ -17,11 +18,15 @@ func main() {
 
 	config.ConnectDatabase()
 
+	config.DB.AutoMigrate(&models.Product{}, &models.Inventory{}, &models.Order{})
+
 	r := gin.Default()
 
 	config.ConnectDatabase()
 
 	routes.ProductRoutes(r)
+	routes.InventoryRoutes(r)
+	routes.OrderRoutes(r)
 
 	r.Run(":8080")
 }
