@@ -8,96 +8,66 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// Create Order (Menambahkan pesanan baru)
 func CreateOrder(c *gin.Context) {
-	var order models.Order
+	var orderInput struct {
+		ProductID int    `json:"product_id"`
+		Quantity  int    `json:"quantity"`
+		OrderDate string `json:"order_date"`
+	}
 
-	if err := c.ShouldBindJSON(&order); err != nil {
+	// Bind JSON untuk mengambil input pesanan
+	if err := c.ShouldBindJSON(&orderInput); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	// Cek apakah produk ada
+	// Validasi produk
 	var product models.Product
-	if err := config.DB.First(&product, order.ProductID).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Produk tidak ditemukan"})
+	if err := config.DB.First(&product, orderInput.ProductID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Product not found"})
 		return
 	}
 
-	// Simpan order ke database
-	if err := config.DB.Create(&order).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	// Validasi jumlah stok
+	var inventory models.Inventory
+	if err := config.DB.Where("product_id = ?", orderInput.ProductID).First(&inventory).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Inventory not found"})
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"message": "Pesanan berhasil dibuat", "order": order})
+	// Pastikan stok mencukupi untuk pesanan
+	if inventory.Quantity < orderInput.Quantity {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Stok tidak cukup"})
+		return
+	}
+
+	// Mengurangi stok setelah pemesanan
+	inventory.Quantity -= orderInput.Quantity
+	config.DB.Save(&inventory)
+
+	// Membuat entri pesanan
+	order := models.Order{
+		ProductID: orderInput.ProductID,
+		Quantity:  orderInput.Quantity,
+		OrderDate: orderInput.OrderDate,
+	}
+
+	// Simpan pesanan ke database
+	config.DB.Create(&order)
+
+	c.JSON(http.StatusOK, order)
 }
 
-// Get All Orders (Menampilkan semua pesanan)
-func GetAllOrders(c *gin.Context) {
-	var orders []models.Order
-	if err := config.DB.Preload("Product").Find(&orders).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	c.JSON(http.StatusOK, gin.H{"orders": orders})
-}
-
-// Get Order by ID (Menampilkan pesanan berdasarkan ID)
+// GetOrderByID - Mengambil detail pesanan berdasarkan ID
 func GetOrderByID(c *gin.Context) {
 	orderID := c.Param("id")
 	var order models.Order
 
-	if err := config.DB.Preload("Product").First(&order, orderID).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Pesanan tidak ditemukan"})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"order": order})
-}
-
-// Update Order (Memperbarui pesanan)
-func UpdateOrder(c *gin.Context) {
-	orderID := c.Param("id")
-	var order models.Order
-
-	// Cek apakah pesanan ada
+	// Cari pesanan berdasarkan ID
 	if err := config.DB.First(&order, orderID).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Pesanan tidak ditemukan"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Order not found"})
 		return
 	}
 
-	// Bind data JSON ke struct order
-	if err := c.ShouldBindJSON(&order); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	// Simpan perubahan
-	if err := config.DB.Save(&order).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"message": "Pesanan berhasil diperbarui", "order": order})
-}
-
-// Delete Order (Menghapus pesanan)
-func DeleteOrder(c *gin.Context) {
-	orderID := c.Param("id")
-	var order models.Order
-
-	// Cek apakah pesanan ada
-	if err := config.DB.First(&order, orderID).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Pesanan tidak ditemukan"})
-		return
-	}
-
-	// Hapus pesanan
-	if err := config.DB.Delete(&order).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"message": "Pesanan berhasil dihapus"})
+	c.JSON(http.StatusOK, order)
 }

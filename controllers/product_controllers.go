@@ -10,12 +10,34 @@ import (
 
 func CreateProduct(c *gin.Context) {
 	var product models.Product
+
+	// Bind data dari JSON
 	if err := c.ShouldBindJSON(&product); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
 		return
 	}
-	config.DB.Create(&product)
-	c.JSON(http.StatusCreated, product)
+
+	// Simpan produk ke database
+	if err := config.DB.Create(&product).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create product"})
+		return
+	}
+
+	// Otomatis buat inventory dengan ProductID dari produk yang baru dibuat
+	inventory := models.Inventory{
+		ProductID: product.ID,
+		Quantity:  0, // Default stok awal
+		Location:  "Default Location",
+	}
+
+	// Simpan inventory ke database
+	config.DB.Create(&inventory)
+
+	c.JSON(http.StatusCreated, gin.H{
+		"message":   "Product created successfully",
+		"product":   product,
+		"inventory": inventory,
+	})
 }
 
 func GetProducts(c *gin.Context) {
@@ -27,7 +49,7 @@ func GetProducts(c *gin.Context) {
 func GetProductByID(c *gin.Context) {
 	var product models.Product
 	if err := config.DB.First(&product, c.Param("id")).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Produk tidak ditemukan"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Product not found"})
 		return
 	}
 	c.JSON(http.StatusOK, product)
@@ -36,7 +58,7 @@ func GetProductByID(c *gin.Context) {
 func UpdateProduct(c *gin.Context) {
 	var product models.Product
 	if err := config.DB.First(&product, c.Param("id")).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Produk tidak ditemukan"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Product not found"})
 		return
 	}
 	if err := c.ShouldBindJSON(&product); err != nil {
@@ -48,6 +70,11 @@ func UpdateProduct(c *gin.Context) {
 }
 
 func DeleteProduct(c *gin.Context) {
-	config.DB.Delete(&models.Product{}, c.Param("id"))
-	c.JSON(http.StatusOK, gin.H{"message": "Produk dihapus"})
+	var product models.Product
+	if err := config.DB.First(&product, c.Param("id")).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Product not found"})
+		return
+	}
+	config.DB.Delete(&product)
+	c.JSON(http.StatusOK, gin.H{"message": "Product deleted"})
 }

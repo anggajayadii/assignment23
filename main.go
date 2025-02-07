@@ -6,27 +6,27 @@ import (
 	"assignment23/routes"
 	"log"
 
-	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 )
 
 func main() {
+	// Memuat file .env
 	err := godotenv.Load()
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}
 
+	// Menghubungkan ke database
 	config.ConnectDatabase()
 
+	// Melakukan migrasi otomatis untuk memastikan tabel-tabel ada
 	config.DB.AutoMigrate(&models.Product{}, &models.Inventory{}, &models.Order{})
 
-	r := gin.Default()
+	// Setup router untuk aplikasi
+	r := routes.SetupRouter()
 
-	config.ConnectDatabase()
-
-	routes.ProductRoutes(r)
-	routes.InventoryRoutes(r)
-	routes.OrderRoutes(r)
-
-	r.Run(":8080")
+	// Menjalankan server di port 8080
+	if err := r.Run(":8080"); err != nil {
+		log.Fatal("Server failed to start:", err)
+	}
 }
