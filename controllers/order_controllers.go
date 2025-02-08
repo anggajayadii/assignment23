@@ -4,6 +4,7 @@ import (
 	"assignment23/config"
 	"assignment23/models"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -59,17 +60,19 @@ func CreateOrder(c *gin.Context) {
 }
 
 // GetOrderByID - Mengambil detail pesanan berdasarkan ID
-func GetOrderByID(c *gin.Context) {
-	orderID := c.Param("id")
-	var order models.Order
 
-	// Gunakan Preload untuk mengambil data Product juga
-	if err := config.DB.Preload("Product").Find(&order).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve orders"})
+func GetOrderByID(c *gin.Context) {
+	// Konversi orderID dari string ke uint
+	orderID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid order ID"})
+		return
 	}
 
-	// Cari pesanan berdasarkan ID
-	if err := config.DB.First(&order, orderID).Error; err != nil {
+	var order models.Order
+
+	// Query dengan Preload hanya jika relasi benar-benar ada
+	if err := config.DB.Preload("Product").Where("id = ?", orderID).First(&order).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Order not found"})
 		return
 	}

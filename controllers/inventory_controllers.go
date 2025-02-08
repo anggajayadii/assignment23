@@ -13,14 +13,8 @@ func GetInventory(c *gin.Context) {
 	productID := c.Param("product_id")
 	var inventory models.Inventory
 
-	// Gunakan Preload untuk mengambil data Product juga
-	if err := config.DB.Preload("Product").Find(&inventory).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve inventory"})
-		return
-	}
-
-	// Cari inventory berdasarkan product_id
-	if err := config.DB.Where("product_id = ?", productID).Find(&inventory).Error; err != nil {
+	// Query langsung berdasarkan product_id dengan Preload
+	if err := config.DB.Preload("Product").Where("product_id = ?", productID).First(&inventory).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Inventory not found"})
 		return
 	}
