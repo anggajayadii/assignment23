@@ -63,6 +63,11 @@ func GetOrderByID(c *gin.Context) {
 	orderID := c.Param("id")
 	var order models.Order
 
+	// Gunakan Preload untuk mengambil data Product juga
+	if err := config.DB.Preload("Product").Find(&order).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve orders"})
+	}
+
 	// Cari pesanan berdasarkan ID
 	if err := config.DB.First(&order, orderID).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Order not found"})

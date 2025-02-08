@@ -48,11 +48,18 @@ func GetProducts(c *gin.Context) {
 
 func GetProductByID(c *gin.Context) {
 	var product models.Product
-	if err := config.DB.First(&product, c.Param("id")).Error; err != nil {
+	id := c.Param("id")
+
+	if err := config.DB.Preload("Inventory").Preload("Orders").First(&product, id).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Product not found"})
 		return
 	}
-	c.JSON(http.StatusOK, product)
+
+	if err := config.DB.First(&product, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Product not found"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"product": product})
 }
 
 func UpdateProduct(c *gin.Context) {

@@ -1,28 +1,27 @@
 package models
 
-import "gorm.io/gorm"
-
 type Product struct {
-	gorm.Model
+	ID          uint        `gorm:"primaryKey" json:"id"`
 	Name        string      `json:"name"`
 	Description string      `json:"description"`
 	Price       float64     `json:"price"`
 	Category    string      `json:"category"`
-	Inventory   []Inventory `json:"inventory"` // Relasi one-to-many dengan Inventory
-	Orders      []Order     `json:"orders"`    // Relasi one-to-many dengan Order
+	Inventory   []Inventory `gorm:"foreignKey:ProductID" json:"inventory,omitempty"`
+	Orders      []Order     `gorm:"foreignKey:ProductID" json:"orders,omitempty"`
 }
+
 type Inventory struct {
-	gorm.Model
+	ID        uint    `gorm:"primaryKey" json:"id"`
 	ProductID uint    `json:"product_id"`
 	Quantity  int     `json:"quantity"`
 	Location  string  `json:"location"`
-	Product   Product `gorm:"foreignkey:ProductID;association_foreignkey:ID"` // Relasi belongs-to dengan Product
+	Product   Product `gorm:"foreignKey:ProductID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL;" json:"product,omitempty"`
 }
 
 type Order struct {
-	gorm.Model
+	ID        uint    `gorm:"primaryKey" json:"id"`
 	ProductID int     `json:"product_id"`
 	Quantity  int     `json:"quantity"`
 	OrderDate string  `json:"order_date"`
-	Product   Product `gorm:"foreignkey:ProductID;association_foreignkey:ID"` // Relasi belongs-to dengan Product
+	Product   Product `gorm:"foreignKey:ProductID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL;" json:"product,omitempty"`
 }
