@@ -20,7 +20,7 @@ func main() {
 	config.ConnectDatabase()
 
 	// Melakukan migrasi otomatis untuk memastikan tabel-tabel ada
-	config.DB.AutoMigrate(&models.Product{}, &models.Inventory{}, &models.Order{})
+	config.DB.AutoMigrate(&models.Product{}, &models.Inventory{}, &models.Order{}, &models.Image{})
 
 	// Setup router untuk aplikasi
 	r := routes.SetupRouter()

@@ -24,5 +24,9 @@ func SetupRouter() *gin.Engine {
 	r.POST("/orders", controllers.CreateOrder)
 	r.GET("/orders/:id", controllers.GetOrderByID)
 
+	// Image Routes
+	r.POST("/upload", controllers.UploadImage)
+	r.GET("/images/:product_id", controllers.GetImage)
+
 	return r
 }
